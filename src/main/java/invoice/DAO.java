@@ -76,10 +76,43 @@ public class DAO {
 	 * taille
 	 * @throws java.lang.Exception si la transaction a échoué
 	 */
-	public void createInvoice(CustomerEntity customer, int[] productIDs, int[] quantities)
-		throws Exception {
-		throw new UnsupportedOperationException("Pas encore implémenté");
-	}
+	public void createInvoice(CustomerEntity customer, int[] productIDs, int[] quantities) throws Exception {
+            String sql = "INSERT INTO Invoice (CustomerID) VALUES (?)";
+            String sql2 = "SELECT Price FROM Product WHERE ID = ?";
+            String sql3 = "INSERT INTO Item (InvoiceID,Item,ProductID,Quantity,Cost) VALUES (?,?,?,?,?)";
+            try (Connection connection = myDataSource.getConnection();
+			PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                        PreparedStatement statement2 = connection.prepareStatement(sql2);
+                        PreparedStatement statement3 = connection.prepareStatement(sql3, Statement.RETURN_GENERATED_KEYS)) {
+                        statement.setInt(1, customer.getCustomerId());
+			statement.executeUpdate();
+                        ResultSet clefs = statement.getGeneratedKeys(); 
+                        clefs.next(); // On lit la première clé générée
+                        int invoiceId = clefs.getInt(1);
+                        
+                        float prix = 0f;
+                        for (int i=0; i<productIDs.length;i++){
+                            statement2.setInt(1, productIDs[i]);
+                            ResultSet rs = statement2.executeQuery();
+                            rs.next(); // Pas la peine de faire while, il y a 1 seul enregistrement
+                            prix = rs.getFloat("Price");
+                            statement3.setInt(1, invoiceId);
+                            statement3.setInt(2, i);
+                            statement3.setInt(3, productIDs[i]);
+                            statement3.setInt(4, quantities[i]);
+                            statement3.setFloat(5, prix);
+                            statement3.executeUpdate();
+                        }
+                        
+                        
+            }
+        
+        }
+                        
+            
+            
+            
+	
 
 	/**
 	 *
