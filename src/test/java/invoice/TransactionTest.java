@@ -93,7 +93,44 @@ public class TransactionTest {
 
 		assertEquals(before + 2f * 10f, after, 0.001f);		
 	}
+        
+        
+        @Test
+        public void unknownProduct() throws Exception {
+            int id = myCustomer.getCustomerId();
+            int before = myDAO.numberOfInvoicesForCustomer( id );
+            // Un tableau de 1 productID
+            int[] productIds = new int[]{4}; // Le produit 4 n'existe pas
+            // Un tableau de 1 quantites
+            int[] quantities = new int[]{2};
+            // On exécute la transaction (qui doit échouer)
+            try {
+                myDAO.createInvoice(myCustomer, productIds, quantities);
+                fail("On doit avoir une exception");
+		} catch (Exception ex) { }
+            int after = myDAO.numberOfInvoicesForCustomer( myCustomer.getCustomerId() );
+            // Le client a autant de factures qu'avant
+            assertEquals(before, after);
+        }
 	
+        
+        @Test
+        public void negativeQuantity() throws Exception {
+            int id = myCustomer.getCustomerId();
+            int before = myDAO.numberOfInvoicesForCustomer( id );
+            // Un tableau de 1 productID
+            int[] productIds = new int[]{0}; // Le produit 0 vaut 10 €
+            // Un tableau de 1 quantites
+            int[] quantities = new int[]{-1};   // Quantité négative
+            // On exécute la transaction (qui doit échouer)
+            try {
+                myDAO.createInvoice(myCustomer, productIds, quantities);
+                fail("On doit avoir une exception");
+		} catch (Exception ex) { }
+            int after = myDAO.numberOfInvoicesForCustomer( myCustomer.getCustomerId() );
+            // Le client a autant de factures qu'avant
+            assertEquals(before, after);
+        }
 
 	
 	public static DataSource getDataSource() throws SQLException {

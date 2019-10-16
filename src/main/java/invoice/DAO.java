@@ -83,27 +83,40 @@ public class DAO {
             try (Connection connection = myDataSource.getConnection();
 			PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                         PreparedStatement statement2 = connection.prepareStatement(sql2);
-                        PreparedStatement statement3 = connection.prepareStatement(sql3, Statement.RETURN_GENERATED_KEYS)) {
+                        PreparedStatement statement3 = connection.prepareStatement(sql3)) {
+                        connection.setAutoCommit(false); // On démarre une transaction
                         statement.setInt(1, customer.getCustomerId());
 			statement.executeUpdate();
                         ResultSet clefs = statement.getGeneratedKeys(); 
                         clefs.next(); // On lit la première clé générée
                         int invoiceId = clefs.getInt(1);
-                        
                         float prix = 0f;
                         for (int i=0; i<productIDs.length;i++){
                             statement2.setInt(1, productIDs[i]);
-                            ResultSet rs = statement2.executeQuery();
-                            rs.next(); // Pas la peine de faire while, il y a 1 seul enregistrement
-                            prix = rs.getFloat("Price");
-                            statement3.setInt(1, invoiceId);
-                            statement3.setInt(2, i);
-                            statement3.setInt(3, productIDs[i]);
-                            statement3.setInt(4, quantities[i]);
-                            statement3.setFloat(5, prix);
-                            statement3.executeUpdate();
+                            try {
+                                if (quantities[i]<0) {
+                                    throw new Exception("La quantité " + quantities[i] + " est négative");
+                                }
+                                ResultSet rs = statement2.executeQuery();
+                                if (rs.next()){
+                                    prix = rs.getFloat("Price");
+                                } else {
+                                    throw new Exception("Le produit " + productIDs[i] + " n'existe pas");
+                                }
+                                statement3.setInt(1, invoiceId);
+                                statement3.setInt(2, i);
+                                statement3.setInt(3, productIDs[i]);
+                                statement3.setInt(4, quantities[i]);
+                                statement3.setFloat(5, prix);
+                                statement3.executeUpdate();
+                            } catch (Exception ex) {
+                                connection.rollback(); // On annule la transaction
+				throw ex;
+                            } 
+                            
                         }
-                        
+                        connection.commit();
+                        connection.setAutoCommit(true);	
                         
             }
         
